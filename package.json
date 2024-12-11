@@ -3,11 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev:client": "npm run dev --prefix client",
-    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "build": "rm -rf ./server/dist && npm run build --prefix client && cp -r ./client/dist ./server",
+    "client:dev": "npm run dev --prefix client",
     "server": "npm run start --prefix server",
-    "test-server": "npm run start:test --prefix server",
+    "server:test": "npm run start:test --prefix server",
     "start": "npm run build && npm run server",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "test:client": "npm run test --prefix client",
@@ -18,7 +17,6 @@
   "devDependencies": {
     "@playwright/test": "^1.42.0",
     "@types/node": "^20.11.21",
-    "concurrently": "^9.1.0",
     "eslint": "^8.45.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
