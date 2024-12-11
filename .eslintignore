@@ -1,0 +1,8 @@
+node_modules
+dist
+.eslintrc.cjs
+vite.config.js
+playwright.config.js
+.prettierrc.json
+playwright-report
+test-results
