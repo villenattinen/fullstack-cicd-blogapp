@@ -19,8 +19,8 @@ let token
 
 describe('when there is initially some blogs saved', () => {
   beforeEach(async () => {
-    await Blog.deleteMany()
-    await User.deleteMany()
+    await Blog.deleteMany({})
+    await User.deleteMany({})
 
     const blogObjects = helper.initialBlogs.map((blog) => new Blog(blog))
 
@@ -194,6 +194,80 @@ describe('when there is initially some blogs saved', () => {
     assert.strictEqual(updatedBlog.author, newBlog.author)
     assert.strictEqual(updatedBlog.url, newBlog.url)
     assert.strictEqual(updatedBlog.likes, newBlog.likes)
+  })
+})
+
+describe('users', () => {
+  beforeEach(async () => {
+    await User.deleteMany({})
+  })
+
+  test('a valid user can be added', async () => {
+    const newUser = {
+      username: 'newuser',
+      name: 'New User',
+      password: 'password',
+    }
+
+    const usersAtStart = await helper.usersInDb()
+
+    const response = await api.post('/api/users').send(newUser).expect(201)
+
+    assert.strictEqual(response.body.username, newUser.username)
+    assert.strictEqual(response.body.name, newUser.name)
+
+    const usersAtEnd = await helper.usersInDb()
+
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length + 1)
+  })
+
+  test('user without username is not added', async () => {
+    const newUser = {
+      name: 'New User',
+      password: 'password',
+    }
+
+    const usersAtStart = await helper.usersInDb()
+
+    const result = await api.post('/api/users').send(newUser).expect(400)
+
+    const usersAtEnd = await helper.usersInDb()
+
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+  })
+
+  test('user without password is not added', async () => {
+    const newUser = {
+      username: 'newuser',
+      name: 'New User',
+    }
+
+    const usersAtStart = await helper.usersInDb()
+
+    const result = await api.post('/api/users').send(newUser).expect(400)
+
+    const usersAtEnd = await helper.usersInDb()
+
+    assert.strictEqual(result.body.error, 'password missing or too short')
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+  })
+
+  test('same username can not be added twice', async () => {
+    const newUser = {
+      username: 'newuser',
+      name: 'New User',
+      password: 'password',
+    }
+
+    await api.post('/api/users').send(newUser)
+
+    const usersAtStart = await helper.usersInDb()
+
+    await api.post('/api/users').send(newUser).expect(400)
+
+    const usersAtEnd = await helper.usersInDb()
+
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
   })
 
   after(() => {
