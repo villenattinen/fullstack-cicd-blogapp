@@ -19,6 +19,17 @@ jobs:
         with:
           node-version: '20'
       - name: Install dependencies
-        run: npm install
+        run: npm install && npm install --prefix client && npm install --prefix server
       - name: ESLint
         run: npm run lint
+      - name: Test client
+        run: npm run test:client
+      - name: Create .env file
+        run: |
+          touch server/.env
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> server/.env
+          echo "TEST_MONGODB_URI=${{ secrets.TEST_MONGODB_URI }}" >> server/.env
+          echo "PORT=${{ secrets.PORT }}" >> server/.env
+          echo "SECRET=${{ secrets.SECRET }}" >> server/.env
+      - name: Test server
+        run: npm run test:server
