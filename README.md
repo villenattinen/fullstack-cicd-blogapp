@@ -1,2 +1,5 @@
-# fullstack-cicd-blogapp
-CI/CD Pipeline Project for University of Helsinki Full Stack Open Course: Part 11 CI/CD exercises
+# Fullstack Open: Parts 11.20 & 11.21, Pipeline for Bloglist App
+
+## Link to the other repository
+
+[Pokedex App](https://github.com/villenattinen/full-stack-open-pokedex)
