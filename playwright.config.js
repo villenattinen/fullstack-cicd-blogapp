@@ -11,6 +11,10 @@ module.exports = defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:5173',
+    trace: 'on-first-retry',
+  },
 
   projects: [
     {
@@ -51,7 +55,7 @@ module.exports = defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev --prefix client',
+    command: 'npm run client:dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
   },

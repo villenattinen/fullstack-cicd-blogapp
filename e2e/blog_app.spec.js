@@ -1,217 +1,148 @@
 const { test, expect, beforeEach, describe } = require('@playwright/test')
+const { resetDatabase, login, createBlog, likeTimes } = require('./helper')
 
 describe('Blog app', () => {
   beforeEach(async ({ page, request }) => {
-    // Reset the database (delete blogs and users)
-    await request.post('http:localhost:3003/api/testing/reset')
-    // Add a single user
-    await request.post('http://localhost:3003/api/users', {
-      data: {
-        name: 'New User',
-        username: 'newuser',
-        password: 'password',
-      },
-    })
-
-    // Open the application
-    await page.goto('http://localhost:5173')
+    await resetDatabase(request)
+    await page.goto('')
   })
 
   test('Login form is shown', async ({ page }) => {
-    // Check that the login text is visible
-    const locator = page.getByText('Log in to application')
-    await expect(locator).toBeVisible()
+    await expect(page.getByText('username')).toBeVisible()
+    await expect(page.getByText('password')).toBeVisible()
   })
 
   describe('Login', () => {
     test('succeeds with correct credentials', async ({ page }) => {
-      // Enter the username and password
-      await page.getByRole('textbox').first().fill('newuser')
-      await page.getByRole('textbox').last().fill('password')
-      // Click the login button
+      await page.getByTestId('username').fill('newuser')
+      await page.getByTestId('password').fill('password')
       await page.getByRole('button', { name: 'login' }).click()
 
-      // Check that the user is logged in
       await expect(page.getByText('New User logged in')).toBeVisible()
     })
 
     test('fails with wrong credentials', async ({ page }) => {
-      // Enter the username and password
-      await page.getByRole('textbox').first().fill('newuser')
-      await page.getByRole('textbox').last().fill('wrong')
-      // Click the login button
+      await page.getByTestId('username').fill('newuser')
+      await page.getByTestId('password').fill('wrong')
       await page.getByRole('button', { name: 'login' }).click()
 
-      // Check that the error message is visible
-      await expect(page.getByText('wrong username or password')).toBeVisible()
+      await expect(page.getByText('Wrong username or password')).toBeVisible()
+      await expect(page.getByText('New User logged in')).not.toBeVisible()
     })
   })
 
   describe('When logged in', () => {
     beforeEach(async ({ page }) => {
-      // Log in as default user
-      await page.getByRole('textbox').first().fill('newuser')
-      await page.getByRole('textbox').last().fill('password')
-      await page.getByRole('button', { name: 'login' }).click()
+      await login(page, 'newuser', 'password')
     })
 
     test('a new blog can be created', async ({ page }) => {
-      // Open the new blog form
       await page.getByRole('button', { name: 'new blog' }).click()
-      // Fill in the form
-      await page.getByRole('textbox', { name: 'title' }).fill('test title')
-      await page.getByRole('textbox', { name: 'author' }).fill('test author')
-      await page.getByRole('textbox', { name: 'url' }).fill('test url')
-      // Submit the form
+
+      await page.getByTestId('title').fill('Testing with Playwright')
+      await page.getByTestId('author').fill('Ted Tester')
+      await page.getByTestId('url').fill('http//:example.com')
       await page.getByRole('button', { name: 'create' }).click()
 
-      // Check that the new blog is shown
-      await expect(page.getByText('test title test author')).toBeVisible()
+      await expect(
+        page.getByText('Testing with Playwright by Ted Tester')
+      ).toBeVisible()
     })
 
-    test('a blog can be liked', async ({ page }) => {
-      // Open the new blog form
-      await page.getByRole('button', { name: 'new blog' }).click()
-      // Fill in the form
-      await page.getByRole('textbox', { name: 'title' }).fill('test title')
-      await page.getByRole('textbox', { name: 'author' }).fill('test author')
-      await page.getByRole('textbox', { name: 'url' }).fill('test url')
-      // Submit the form
-      await page.getByRole('button', { name: 'create' }).click()
-      // Open the blog
-      await page.getByRole('button', { name: 'view' }).click()
-      // Like the blog
-      await page.getByRole('button', { name: 'like' }).click()
+    describe('and a blog exists', () => {
+      beforeEach(async ({ page }) => {
+        await createBlog(
+          page,
+          'Testing with Playwright',
+          'Ted Tester',
+          'http//:example.com'
+        )
+      })
 
-      // Check that likes have increased to one
-      await expect(page.getByText('likes 1')).toBeVisible()
+      test('it can be liked', async ({ page }) => {
+        await page.getByRole('button', { name: 'view' }).click()
+        await page.getByRole('button', { name: 'like' }).click()
+        await expect(page.getByText('likes 1')).toBeVisible()
+      })
+
+      test('it can be deleted by the creator', async ({ page }) => {
+        await page.getByRole('button', { name: 'view' }).click()
+        page.on('dialog', async (dialog) => {
+          await dialog.accept()
+        })
+        await page.getByRole('button', { name: 'remove' }).click()
+
+        await expect(
+          page.getByText('Testing with Playwright by Ted Tester')
+        ).not.toBeVisible()
+      })
+
+      test('it can not be deleted by other users', async ({ page }) => {
+        await page.getByRole('button', { name: 'logout' }).click()
+        await login(page, 'ted', 'tedsecret')
+
+        await page.getByRole('button', { name: 'view' }).click()
+        await expect(
+          page.getByRole('button', { name: 'remove' })
+        ).not.toBeVisible()
+      })
     })
 
-    test('a blog can be deleted', async ({ page }) => {
-      // Open the new blog form
-      await page.getByRole('button', { name: 'new blog' }).click()
-      // Fill in the form
-      await page.getByRole('textbox', { name: 'title' }).fill('test title')
-      await page.getByRole('textbox', { name: 'author' }).fill('test author')
-      await page.getByRole('textbox', { name: 'url' }).fill('test url')
-      // Submit the form
-      await page.getByRole('button', { name: 'create' }).click()
-      // Open the blog
-      await page.getByRole('button', { name: 'view' }).click()
-      // Will auto-accept the dialog when it pops up
-      page.on('dialog', (dialog) => dialog.accept())
-      // Delete the blog
-      await page.getByRole('button', { name: 'remove' }).click()
-
-      // Check that the blog is no longer shown
-      await expect(page.getByText('test title test author')).toHaveCount(0)
-    })
-
-    test('only the user who created a blog sees the remove button', async ({
-      page,
-      request,
-    }) => {
-      // Open the new blog form
-      await page.getByRole('button', { name: 'new blog' }).click()
-      // Fill in the form
-      await page.getByRole('textbox', { name: 'title' }).fill('test title')
-      await page.getByRole('textbox', { name: 'author' }).fill('test author')
-      await page.getByRole('textbox', { name: 'url' }).fill('test url')
-      // Submit the form
-      await page.getByRole('button', { name: 'create' }).click()
-      // Log out of default user
-      await page.getByRole('button', { name: 'logout' }).click()
-      // Create second user
-      await request.post('http://localhost:3003/api/users', {
-        data: {
-          name: 'Another User',
-          username: 'anotheruser',
-          password: 'drowssap',
-        },
-      })
-      // Log in as second user
-      await page.getByRole('textbox').first().fill('anotheruser')
-      await page.getByRole('textbox').last().fill('drowssap')
-      await page.getByRole('button', { name: 'login' }).click()
-      // Open the blog
-      await page.getByRole('button', { name: 'view' }).click()
-      // Check that the remove button is not visible
-      await expect(page.getByRole('button', { name: 'remove' })).toHaveCount(0)
-    })
-
-    test('blogs are ordered by number of likes', async ({ page }) => {
-      // Open the new blog form
-      await page.getByRole('button', { name: 'new blog' }).click()
-      // Fill in the form
-      await page.getByRole('textbox', { name: 'title' }).fill('test title 1')
-      await page.getByRole('textbox', { name: 'author' }).fill('test author 1')
-      await page.getByRole('textbox', { name: 'url' }).fill('test url 1')
-      // Submit the form to add first blog
-      await page.getByRole('button', { name: 'create' }).click()
-
-      // Open the new blog form
-      await page.getByRole('button', { name: 'new blog' }).click()
-      // Fill in the form
-      await page.getByRole('textbox', { name: 'title' }).fill('test title 2')
-      await page.getByRole('textbox', { name: 'author' }).fill('test author 2')
-      await page.getByRole('textbox', { name: 'url' }).fill('test url 2')
-      // Submit the form to add second blog
-      await page.getByRole('button', { name: 'create' }).click()
-
-      // Open the new blog form
-      await page.getByRole('button', { name: 'new blog' }).click()
-      // Fill in the form
-      await page.getByRole('textbox', { name: 'title' }).fill('test title 3')
-      await page.getByRole('textbox', { name: 'author' }).fill('test author 3')
-      await page.getByRole('textbox', { name: 'url' }).fill('test url 3')
-      // Submit the form to add third blog
-      await page.getByRole('button', { name: 'create' }).click()
-
-      // Open the blogs
-      const firstBlog = page.locator('[name="blog"]', {
-        hasText: 'test title 1 test author 1',
-      })
-      const secondBlog = page.locator('[name="blog"]', {
-        hasText: 'test title 2 test author 2',
-      })
-      const thirdBlog = page.locator('[name="blog"]', {
-        hasText: 'test title 3 test author 3',
+    describe('and multiple blogs exist', () => {
+      beforeEach(async ({ page }) => {
+        await createBlog(page, 'blog1', 'Ted Tester', 'http//:example.com/1')
+        await createBlog(page, 'blog2', 'Ted Tester', 'http//:example.com/2')
+        await createBlog(page, 'blog3', 'Ted Tester', 'http//:example.com/3')
       })
 
-      await firstBlog.getByRole('button', { name: 'view' }).click()
-      await secondBlog.getByRole('button', { name: 'view' }).click()
-      await thirdBlog.getByRole('button', { name: 'view' }).click()
+      test('blogs are ordered by likes', async ({ page }) => {
+        await page
+          .getByText('blog1')
+          .getByRole('button', { name: 'view' })
+          .click()
+        await page
+          .getByText('blog2')
+          .getByRole('button', { name: 'view' })
+          .click()
+        await page
+          .getByText('blog3')
+          .getByRole('button', { name: 'view' })
+          .click()
 
-      // Like the blogs
+        await page.pause()
+        const button1 = page
+          .getByText('blog1')
+          .getByRole('button', { name: 'like' })
+        await likeTimes(page, button1, 1)
+        await page
+          .getByText('blog1')
+          .getByRole('button', { name: 'hide' })
+          .click()
 
-      // Like the first blog once
-      await firstBlog.getByRole('button', { name: 'like' }).click()
-      // Like the second blog twice
-      await secondBlog.getByRole('button', { name: 'like' }).click()
-      await secondBlog.getByRole('button', { name: 'like' }).click()
-      // Like the third blog thrice
-      await thirdBlog.getByRole('button', { name: 'like' }).click()
-      await thirdBlog.getByRole('button', { name: 'like' }).click()
-      await thirdBlog.getByRole('button', { name: 'like' }).click()
+        const button2 = page
+          .getByText('blog2')
+          .getByRole('button', { name: 'like' })
+        await likeTimes(page, button2, 3)
+        await page
+          .getByText('blog2')
+          .getByRole('button', { name: 'hide' })
+          .click()
 
-      const firstBlogListed = page.locator('[name="blog"]').first()
-      const secondBlogListed = page.locator('[name="blog"]').nth(1)
-      const thirdBlogListed = page.locator('[name="blog"]').nth(2)
+        const button3 = page
+          .getByText('blog3')
+          .getByRole('button', { name: 'like' })
+        await likeTimes(page, button3, 2)
+        await page
+          .getByText('blog3')
+          .getByRole('button', { name: 'hide' })
+          .click()
 
-      // Check that the third blog added is the first listed
-      await expect(firstBlogListed).toContainText('test title 3 test author 3')
-      // Check for the right number of likes
-      await expect(firstBlogListed.getByText('likes 3')).toBeVisible()
+        const blogDivs = await page.locator('div.blog').all()
 
-      // Check that the second blog added is the second listed
-      await expect(secondBlogListed).toContainText('test title 2 test author 2')
-      // Check for the right number of likes
-      await expect(secondBlogListed.getByText('likes 2')).toBeVisible()
-
-      // Check that the first blog added is the third listed
-      await expect(thirdBlogListed).toContainText('test title 1 test author 1')
-      // Check for the right number of likes
-      await expect(thirdBlogListed.getByText('likes 1')).toBeVisible()
+        await expect(blogDivs[0]).toHaveText('blog2 Ted Testerview')
+        await expect(blogDivs[1]).toHaveText('blog3 Ted Testerview')
+        await expect(blogDivs[2]).toHaveText('blog1 Ted Testerview')
+      })
     })
   })
 })

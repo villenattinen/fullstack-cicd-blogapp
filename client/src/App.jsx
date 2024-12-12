@@ -14,9 +14,7 @@ const App = () => {
   const [user, setUser] = useState(null)
 
   useEffect(() => {
-    blogService.getAll().then(blogs =>
-      setBlogs( blogs )
-    )
+    blogService.getAll().then((blogs) => setBlogs(blogs))
   }, [])
 
   useEffect(() => {
@@ -31,15 +29,13 @@ const App = () => {
   const createBlog = (blogObject) => {
     try {
       blogFormRef.current.toggleVisibility()
-      blogService
-        .create(blogObject)
-        .then(data => {
-          setNotificationMessage(
-            `New blog ${blogObject.title} by ${blogObject.author} created`
-          )
-          setNotificationClassName('success')
-          setBlogs(blogs.concat(data))
-        })
+      blogService.create(blogObject).then((data) => {
+        setNotificationMessage(
+          `New blog ${blogObject.title} by ${blogObject.author} created`
+        )
+        setNotificationClassName('success')
+        setBlogs(blogs.concat(data))
+      })
       setTimeout(() => {
         setNotificationMessage(null)
         setNotificationClassName(null)
@@ -56,11 +52,9 @@ const App = () => {
 
   const updateBlog = (blogObject) => {
     try {
-      blogService
-        .update(blogObject)
-        .then(data => {
-          setBlogs(blogs.map(blog => blog.id !== blogObject.id ? blog : data))
-        })
+      blogService.update(blogObject).then((data) => {
+        setBlogs(blogs.map((blog) => (blog.id !== blogObject.id ? blog : data)))
+      })
     } catch (exception) {
       setNotificationMessage('Error updating blog')
       setNotificationClassName('error')
@@ -78,17 +72,15 @@ const App = () => {
           `Delete blog ${blogObject.title} by ${blogObject.author}`
         )
       ) {
-        blogService
-          .remove(blogObject.id)
-          .then(() => {
-            setBlogs(blogs.filter(blog => blog.id !== blogObject.id))
-            setNotificationMessage(`Blog ${blogObject.title} deleted`)
-            setNotificationClassName('success')
-            setTimeout(() => {
-              setNotificationMessage(null)
-              setNotificationClassName(null)
-            }, 5000)
-          })
+        blogService.remove(blogObject.id).then(() => {
+          setBlogs(blogs.filter((blog) => blog.id !== blogObject.id))
+          setNotificationMessage(`Blog ${blogObject.title} deleted`)
+          setNotificationClassName('success')
+          setTimeout(() => {
+            setNotificationMessage(null)
+            setNotificationClassName(null)
+          }, 5000)
+        })
       }
     } catch (exception) {
       setNotificationMessage('Error deleting blog')
@@ -103,12 +95,11 @@ const App = () => {
   const handleLogin = async ({ username, password }) => {
     try {
       const user = await loginService.login({
-        username, password,
+        username,
+        password,
       })
 
-      window.localStorage.setItem(
-        'loggedBlogAppUser', JSON.stringify(user)
-      )
+      window.localStorage.setItem('loggedBlogAppUser', JSON.stringify(user))
       blogService.setToken(user.token)
       setUser(user)
       setNotificationMessage(`Logged in as ${user.name}`)
@@ -142,39 +133,35 @@ const App = () => {
         className={notificationClassName}
       />
 
-      {!user &&
-        <LoginForm handleLogin={handleLogin} />
-      }
+      {!user && <LoginForm handleLogin={handleLogin} />}
 
-      {user &&
+      {user && (
         <div>
           <h2>blogs</h2>
           <div>
             {user.name} logged in
-            <button onClick={handleLogout}>
+            <button onClick={handleLogout} name="logout">
               logout
             </button>
           </div>
-          <Togglable buttonLabel="new blog" ref={blogFormRef}>
+          <Togglable buttonLabel="new blog" ref={blogFormRef} name="new blog">
             <BlogForm createBlog={createBlog} />
           </Togglable>
-          {
-            blogs
-              .sort((firstBlog, secondBlog) => {
-                return firstBlog.likes < secondBlog.likes ? 1: -1
-              })
-              .map(blog =>
-                <Blog
-                  key={blog.id}
-                  blog={blog}
-                  username={user.username}
-                  updateBlog={updateBlog}
-                  deleteBlog={deleteBlog}
-                />
-              )
-          }
+          {blogs
+            .sort((firstBlog, secondBlog) => {
+              return firstBlog.likes < secondBlog.likes ? 1 : -1
+            })
+            .map((blog) => (
+              <Blog
+                key={blog.id}
+                blog={blog}
+                username={user.username}
+                updateBlog={updateBlog}
+                deleteBlog={deleteBlog}
+              />
+            ))}
         </div>
-      }
+      )}
     </div>
   )
 }

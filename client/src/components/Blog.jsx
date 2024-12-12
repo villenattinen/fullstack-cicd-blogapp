@@ -31,27 +31,37 @@ const Blog = ({ blog, username, updateBlog, deleteBlog }) => {
   const buttonLabel = isExtended ? 'hide' : 'view'
 
   return (
-    <div style={blogStyle} name="blog">
+    <div style={blogStyle} className="blog" name="blog">
       <div>
         {blogObject.title} {blogObject.author}
-        {<button onClick={toggleVisibility}>{buttonLabel}</button>}
-      </div>
-      {isExtended && (
-        <div>
-          {blogObject.url}
-          <br />
-          likes {blogObject.likes}
-          <button onClick={updateLikes}>like</button>
-          <br />
-          {blogObject.user?.name}
-          <br />
-          {username === blogObject.user?.username && (
-            <button style={{ backgroundColor: 'red' }} onClick={removeBlog}>
-              remove
+        {
+          <button onClick={toggleVisibility} name={buttonLabel}>
+            {buttonLabel}
+          </button>
+        }
+        {isExtended && (
+          <div>
+            {blogObject.url}
+            <br />
+            likes {blogObject.likes}
+            <button onClick={updateLikes} name="like">
+              like
             </button>
-          )}
-        </div>
-      )}
+            <br />
+            {blogObject.user?.name}
+            <br />
+            {username === blogObject.user?.username && (
+              <button
+                style={{ backgroundColor: 'red' }}
+                onClick={removeBlog}
+                name="remove"
+              >
+                remove
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
