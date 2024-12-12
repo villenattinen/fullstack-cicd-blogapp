@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: '20'
       - name: Install dependencies
-        run: npm install && npm install --prefix client && npm install --prefix server
+        run: npm install
       - name: ESLint
         run: npm run lint
       - name: Build
@@ -28,18 +28,18 @@ jobs:
         run: npm run test:client
       - name: Create .env file
         run: |
-          touch server/.env
-          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> server/.env
-          echo "TEST_MONGODB_URI=${{ secrets.TEST_MONGODB_URI }}" >> server/.env
-          echo "PORT=${{ secrets.PORT }}" >> server/.env
-          echo "SECRET=${{ secrets.SECRET }}" >> server/.env
+          touch .env
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
+          echo "TEST_MONGODB_URI=${{ secrets.TEST_MONGODB_URI }}" >> .env
+          echo "PORT=${{ secrets.PORT }}" >> .env
+          echo "SECRET=${{ secrets.SECRET }}" >> .env
       - name: Test server
         run: npm run test:server
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
       - name: E2E Tests
         run: |
-          npm run server:test &
+          npm run start:test &
           npm run test:e2e
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -48,3 +48,12 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 1
+      - name: Setup Flyctl
+        if: (github.event_name == 'push' && !contains(join(github.event.commits.*.message), '#skip'))
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy
+        id: deploy
+        if: (github.event_name == 'push' && !contains(join(github.event.commits.*.message), '#skip'))
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
