@@ -9,7 +9,7 @@ primary_region = 'arn'
 [build]
 
 [env]
-  PORT = 3003
+  PORT = 3000
 
 [processes]
   app = "node server/index.js"
@@ -18,7 +18,7 @@ primary_region = 'arn'
   strategy = "canary"
 
 [http_service]
-  internal_port = 3003
+  internal_port = 3000
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
