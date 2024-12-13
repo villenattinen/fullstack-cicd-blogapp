@@ -1,0 +1,32 @@
+name: Health Check
+
+on:
+  schedule:
+    - cron: '* * * * *'
+
+jobs:
+  periodic_health_check:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Health Check
+        uses: jtalk/url-health-check-action@v4
+        with:
+          url: https://fullstack-cicd-blogapp.fly.dev/
+      - name: Notify Discord on Successful Health Check
+        uses: stegzilla/discord-notify@v2
+        if: success()
+        with:
+          colour: '#2cfc03'
+          title: 'Health Check'
+          message: Blog app is alive at https://fullstack-cicd-blogapp.fly.dev/ 🚀
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+      - name: Notify Discord on Failed Health Check
+        uses: stegzilla/discord-notify@v2
+        if: failure()
+        with:
+          colour: '#fc0303'
+          title: 'Health Check'
+          message: Blog app is unreachable at https://fullstack-cicd-blogapp.fly.dev/!
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
